@@ -117,24 +117,27 @@ def recommend_countermeasures(ttps, ttp_to_mitigation):
     return recommendations
 
 
+import os
+import logging
+
+logger = logging.getLogger(__name__)
+
 def visualize_ttp_distribution(df):
-    """
-    Visualizes the distribution of TTPs across CVEs.
+    try:
+        ttp_counts = df["TTP"].value_counts()
+        ttp_counts.plot(kind="bar", figsize=(10, 6), color="skyblue")
+        plt.title("TTP Distribution", fontsize=16)
+        plt.xlabel("TTPs", fontsize=12)
+        plt.ylabel("Count", fontsize=12)
+        output_dir = "output"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, "ttp_distribution.png")
+        plt.savefig(output_path)
+        plt.close()
+        logger.info(f"Visualization saved to {output_path}")
+        return output_path
+    except Exception as e:
+        logger.error(f"Error generating visualization: {e}")
+        raise RuntimeError(f"Error generating visualization: {e}")
 
-    Args:
-        df (DataFrame): DataFrame containing TTP predictions.
-    """
-    print("Visualizing TTP distribution...")
-    ttp_counts = df["TTP"].value_counts()
 
-    plt.figure(figsize=(10, 6))
-    ttp_counts.plot(kind="bar", color="skyblue")
-    plt.title("TTP Distribution Across CVEs")
-    plt.xlabel("TTP")
-    plt.ylabel("Number of CVEs")
-    plt.xticks(rotation=0)
-    plt.tight_layout()
-
-    plt.savefig("output/ttp_distribution.png")
-    plt.show()
-    print("TTP distribution visualization saved to output/ttp_distribution.png")

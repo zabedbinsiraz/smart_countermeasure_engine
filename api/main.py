@@ -18,13 +18,19 @@ app = FastAPI()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Authentication setup
-API_KEY = "mysecureapikey"
+import os
 
-def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key != API_KEY:
-        logger.warning("Unauthorized access attempt with invalid API key.")
-        raise HTTPException(status_code=403, detail="Invalid API key")
+API_KEY = os.getenv("API_KEY", "eutoir098ut8w9aeruiosdjgpijds")  
+
+# Authentication setup
+# API_KEY = "mysecureapikey"
+
+def verify_api_key(x_api_key: str = Header(None)):
+    if not x_api_key or x_api_key != API_KEY:
+        logger.warning("Unauthorized access attempt or missing API key.")
+        raise HTTPException(status_code=403, detail="Invalid or missing API key.")
+
+
 
 # Load model and MITRE data at startup
 model_name = "prajjwal1/bert-tiny"
@@ -43,9 +49,6 @@ def root():
 
 @app.post("/predict/", dependencies=[Depends(verify_api_key)])
 async def predict_ttp(file: UploadFile):
-    """
-    Predict TTPs from uploaded CVE data and recommend countermeasures.
-    """
     logger.info("Received file for prediction.")
     if not file.filename.endswith(".csv"):
         logger.error("Invalid file type uploaded.")
@@ -60,6 +63,10 @@ async def predict_ttp(file: UploadFile):
     except Exception as e:
         logger.error(f"Error reading CSV file: {e}")
         raise HTTPException(status_code=400, detail=f"Error reading CSV file: {e}")
+
+    if df.empty:
+        logger.error("Uploaded CSV file is empty.")
+        raise HTTPException(status_code=400, detail="Uploaded CSV file is empty.")
 
     if "Description" not in df.columns:
         logger.error("Missing 'Description' column in uploaded file.")
@@ -77,6 +84,7 @@ async def predict_ttp(file: UploadFile):
     logger.info(f"Predictions saved to {output_path}")
 
     return {"message": "Predictions generated successfully.", "output_file": output_path}
+
 
 @app.get("/visualize/", dependencies=[Depends(verify_api_key)])
 def visualize_ttp_distribution_endpoint():
